@@ -697,6 +697,28 @@ docker-compose logs -f backend &
 docker-compose logs -f jenkins &
 ```
 
+## 비밀 정보 초기화
+
+### reset.sh 스크립트 사용법
+
+실수로 GitHub 토큰이나 기타 비밀 정보가 커밋되는 것을 방지하기 위해 `reset.sh` 스크립트를 제공합니다.
+
+```bash
+# 비밀 정보 초기화 실행
+./reset.sh
+```
+
+이 스크립트는 다음 파일들의 비밀 정보를 안전한 플레이스홀더로 초기화합니다:
+- `setup.conf`: GitHub 토큰, Discord 웹훅, 데이터베이스 비밀번호, Jenkins 비밀번호
+- `.env`, `.env.local`, `.env.production`: 각종 API 키와 시크릿 키
+
+### 사용 시나리오
+- Git 커밋 전 비밀 정보 노출 방지
+- 프로젝트 공유 시 민감한 정보 제거
+- 새로운 환경 설정 시 초기값으로 리셋
+
+**주의**: 초기화 후 실제 값들을 다시 설정해야 합니다.
+
 ## 추가 팁
 
 ### 성능 최적화
@@ -739,23 +761,3 @@ docker volume inspect woo-devops_mysql-data
 # 빌드 성능 향상을 위한 Docker 캐시 활용
 docker-compose build --parallel
 ```
-
----
-
-## 지원
-
-### 문제 신고
-- **GitHub Issues**: 버그 신고 및 기능 요청
-- **Discord**: 실시간 채팅 지원 (웹훅 설정 시)
-
-### 버전 정보
-- **프로젝트 버전**: v2.0
-- **최소 Docker 버전**: 20.10+
-- **최소 Docker Compose 버전**: 2.0+
-
-### 라이선스
-이 프로젝트는 MIT 라이선스 하에 배포됩니다.
-
----
-
-**축하합니다!** Woo-DevOps 프레임워크를 성공적으로 설정하셨습니다. 이제 코드를 푸시하기만 하면 자동으로 빌드와 배포가 이루어집니다!
