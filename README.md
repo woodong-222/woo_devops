@@ -240,6 +240,8 @@ docker-compose ps
 docker-compose up -d
 ```
 
+http://localhost:8080에 들어가서 젠킨스 설정이 다 완료될 때까지 대기
+
 ### 개발 워크플로우
 ```bash
 # 1. 코드 변경 후 커밋 (Frontend 또는 Backend)
