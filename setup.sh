@@ -78,15 +78,38 @@ if [[ "$ENABLE_DISCORD" =~ ^[Yy]$ ]]; then
     fi
 fi
 
-read -p "Enter GitHub Personal Access Token (optional): " GITHUB_TOKEN
+read -p "Enter GitHub Personal Access Token (required for Jenkins): " GITHUB_TOKEN
+
+# Validate GitHub token - it's required for Jenkins to work
+while [ -z "$GITHUB_TOKEN" ]; do
+    print_error "GitHub Personal Access Token is required for Jenkins to access repositories!"
+    read -p "Enter GitHub Personal Access Token (required): " GITHUB_TOKEN
+done
 
 echo ""
-# Domain input
+# Domain Configuration
 echo -e "${BLUE}Domain Configuration${NC}"
-read -p "Enter main domain (example: example.com): " DOMAIN
+echo "1) Use custom domain (production)"
+echo "2) Use localhost (development - no domain needed)"
+read -p "Choose [1-2]: " DOMAIN_CHOICE
 
-if [ -z "$DOMAIN" ]; then
-    print_error "Domain is required."
+DOMAIN=""
+USE_DOMAIN=false
+
+if [ "$DOMAIN_CHOICE" = "1" ]; then
+    USE_DOMAIN=true
+    read -p "Enter main domain (example: example.com): " DOMAIN
+    
+    if [ -z "$DOMAIN" ]; then
+        print_error "Domain is required when using custom domain option."
+        exit 1
+    fi
+elif [ "$DOMAIN_CHOICE" = "2" ]; then
+    USE_DOMAIN=false
+    DOMAIN="localhost"
+    print_info "Using localhost for development mode"
+else
+    print_error "Please choose 1 or 2."
     exit 1
 fi
 
@@ -132,7 +155,7 @@ echo "Database User: $DB_USER"
 echo "Jenkins Admin User: $JENKINS_USER"
 echo "Discord Notifications: $([ -n "$DISCORD_WEBHOOK" ] && echo "Enabled" || echo "Disabled")"
 echo "GitHub Token: $([ -n "$GITHUB_TOKEN" ] && echo "Configured" || echo "Not set")"
-echo "Domain: $DOMAIN"
+echo "Domain Mode: $([ "$USE_DOMAIN" = true ] && echo "Custom ($DOMAIN)" || echo "Localhost")"
 echo "Protocol: $([ "$USE_HTTPS" = true ] && echo "HTTPS" || echo "HTTP")"
 if [ "$USE_HTTPS" = true ]; then
     echo "SSL Certificate: $SSL_CERT_PATH"
@@ -246,12 +269,14 @@ if [ -f "docker-compose.yml" ]; then
 fi
 
 # /etc/hosts configuration guide
-echo ""
-print_info "Add the following to /etc/hosts file for local testing:"
-echo "127.0.0.1 $DOMAIN"
-echo "127.0.0.1 www.$DOMAIN"
-echo "127.0.0.1 api.$DOMAIN" 
-echo "127.0.0.1 jenkins.$DOMAIN"
+if [ "$USE_DOMAIN" = true ]; then
+    echo ""
+    print_info "Add the following to /etc/hosts file for local testing:"
+    echo "127.0.0.1 $DOMAIN"
+    echo "127.0.0.1 www.$DOMAIN"
+    echo "127.0.0.1 api.$DOMAIN" 
+    echo "127.0.0.1 jenkins.$DOMAIN"
+fi
 
 echo ""
 print_success "Environment setup completed!"
@@ -259,15 +284,23 @@ echo ""
 print_info "Start services with: docker-compose up -d"
 echo ""
 echo "Service Access Information:"
-if [ "$USE_HTTPS" = true ]; then
-    echo "   - Frontend: https://$DOMAIN"
-    echo "   - Backend:  https://api.$DOMAIN"
-    echo "   - Jenkins:  https://jenkins.$DOMAIN"
-    echo "   - Nginx:    https://$DOMAIN"
+if [ "$USE_DOMAIN" = true ]; then
+    if [ "$USE_HTTPS" = true ]; then
+        echo "   - Frontend: https://$DOMAIN"
+        echo "   - Backend:  https://api.$DOMAIN"
+        echo "   - Jenkins:  https://jenkins.$DOMAIN"
+        echo "   - Nginx:    https://$DOMAIN"
+    else
+        echo "   - Frontend: http://$DOMAIN"
+        echo "   - Backend:  http://api.$DOMAIN"
+        echo "   - Jenkins:  http://jenkins.$DOMAIN"
+        echo "   - Nginx:    http://$DOMAIN"
+    fi
 else
-    echo "   - Frontend: http://$DOMAIN"
-    echo "   - Backend:  http://api.$DOMAIN"
-    echo "   - Jenkins:  http://jenkins.$DOMAIN"
-    echo "   - Nginx:    http://$DOMAIN"
+    # Localhost mode - use port-based access
+    echo "   - Frontend: http://localhost:3000"
+    echo "   - Backend:  http://localhost:8080"
+    echo "   - Jenkins:  http://localhost:8081"
+    echo "   - Nginx:    http://localhost:80"
 fi
 echo "   - MySQL:    localhost:3306 (direct connection)"

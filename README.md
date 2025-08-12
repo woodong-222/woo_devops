@@ -2,7 +2,7 @@
 
 완전 자동화된 CI/CD 파이프라인을 통해 개발부터 배포까지 한 번에! 이 프레임워크는 Frontend(React), Backend(FastAPI), Database(MySQL), Jenkins CI/CD, Nginx 서버를 포함하는 올인원 솔루션입니다.
 
-## 📋 목차
+## 목차
 
 - [개요](#개요)
 - [기술 스택](#기술-스택)
@@ -11,15 +11,18 @@
 - [초기 설정 가이드](#초기-설정-가이드)
   - [1. GitHub Personal Access Token 생성](#1-github-personal-access-token-생성)
   - [2. Discord Webhook 설정 (선택사항)](#2-discord-webhook-설정-선택사항)
-  - [3. 설치 및 실행](#3-설치-및-실행)
+  - [3. 네트워크 환경 설정](#3-네트워크-환경-설정-서버-배포-시-필수)
+  - [4. 설치 및 실행](#4-설치-및-실행)
 - [사용법](#사용법)
 - [네트워크 및 서비스 구성](#네트워크-및-서비스-구성)
-- [GitHub Webhook 설정](#github-webhook-설정)
+- [GitHub 저장소 설정](#github-저장소-설정-setupsh-실행-후-진행)
 - [서비스 접속 정보](#서비스-접속-정보)
 - [보안 설정](#보안-설정)
 - [문제 해결](#문제-해결)
+- [추가 팁](#추가-팁)
+- [지원](#지원)
 
-## 🎯 개요
+## 개요
 
 이 프레임워크의 핵심 기능들은 다음과 같습니다:
 
@@ -31,7 +34,7 @@
 - **보안 강화**: HTTPS 지원 및 보안 헤더 설정
 - **모니터링**: 각 서비스별 로그 및 상태 모니터링
 
-## 🛠 기술 스택
+## 기술 스택
 
 ### Frontend
 - **React 19** + **TypeScript**
@@ -55,7 +58,7 @@
 - **HSTS, CSP** 등 보안 헤더
 - **환경변수 기반** 시크릿 관리
 
-## 📁 프로젝트 구조
+## 프로젝트 구조
 
 ```
 woo-devops/
@@ -96,7 +99,7 @@ woo-devops/
     └── users/                   # 사용자 계정 정보
 ```
 
-## 📋 사전 요구사항
+## 사전 요구사항
 
 아래 도구들이 시스템에 설치되어 있어야 합니다:
 
@@ -105,13 +108,21 @@ woo-devops/
 - **Linux/macOS**: Bash (기본 제공)
 - **Windows**: Git Bash, WSL, 또는 PowerShell
 
-## 🚀 초기 설정 가이드
+## 초기 설정 가이드
+
+### 설정 순서
+1. **GitHub Personal Access Token 생성** (필수)
+2. **Discord Webhook 설정** (선택사항)  
+3. **네트워크 환경 설정** (포트포워딩 등)
+4. **프로젝트 설치 및 실행**
+5. **GitHub 저장소 설정** (Jenkinsfile + 웹훅)
+6. **로컬 접근 설정** (방화벽 + hosts 파일)
 
 ### 1. GitHub Personal Access Token 생성
 
 Jenkins가 GitHub 저장소에 접근하기 위해 **필수**로 필요합니다.
 
-#### 📝 생성 단계:
+#### 생성 단계:
 
 1. **GitHub 계정**에 로그인 → 우상단 프로필 클릭
 2. **Settings** 메뉴 선택
@@ -122,18 +133,18 @@ Jenkins가 GitHub 저장소에 접근하기 위해 **필수**로 필요합니다
    - **Note**: `Woo-DevOps Jenkins CI/CD` (토큰 설명)
    - **Expiration**: `No expiration` 또는 적절한 기간
    - **Select scopes**: 아래 권한들을 **반드시** 체크
-     - ✅ `repo` (전체 저장소 접근)
-     - ✅ `admin:repo_hook` (웹훅 관리)
-     - ✅ `user:email` (사용자 이메일 정보)
-     - ✅ `workflow` (GitHub Actions - 선택사항)
+     - `repo` (전체 저장소 접근)
+     - `admin:repo_hook` (웹훅 관리)
+     - `user:email` (사용자 이메일 정보)
+     - `workflow` (GitHub Actions - 선택사항)
 7. **Generate token** 클릭
-8. **⚠️ 중요**: 생성된 토큰을 **반드시 복사**해 두세요 (페이지를 벗어나면 다시 볼 수 없습니다)
+8. **중요**: 생성된 토큰을 **반드시 복사**해 두세요 (페이지를 벗어나면 다시 볼 수 없습니다)
 
 ### 2. Discord Webhook 설정 (선택사항)
 
 빌드 결과를 Discord에 실시간 알림으로 받기 위한 설정입니다.
 
-#### 📝 생성 단계:
+#### 생성 단계:
 
 1. **Discord 서버** 준비 (또는 새로 생성)
 2. 알림을 받을 **텍스트 채널** 우클릭 → **채널 편집**
@@ -144,7 +155,37 @@ Jenkins가 GitHub 저장소에 접근하기 위해 **필수**로 필요합니다
 5. **웹훅 URL 복사** 버튼 클릭
 6. URL을 복사해 두세요 (예: `https://discord.com/api/webhooks/123456/abc...`)
 
-### 3. 설치 및 실행
+### 3. 네트워크 환경 설정 (서버 배포 시 필수)
+
+외부에서 Jenkins 웹훅에 접근하기 위해 네트워크 설정이 필요합니다.
+
+#### 포트포워딩 설정:
+1. **라우터 관리 페이지 접속**: `http://라우터IP` (보통 `192.168.x.1`)
+2. **로그인**: admin/admin 또는 라우터 뒷면 스티커 확인
+3. **포트포워딩 메뉴**: "고급설정" → "포트포워딩" 또는 "Virtual Server"
+4. **설정 추가**:
+   ```
+   서비스명: Jenkins-HTTP
+   외부포트: 80
+   내부IP: [현재 PC IP - ipconfig로 확인]
+   내부포트: 80
+   프로토콜: TCP
+   ```
+5. **저장 및 재시작**
+
+#### 방화벽 설정 (Windows):
+```powershell
+# 관리자 권한 PowerShell에서 실행
+netsh advfirewall firewall add rule name="HTTP External" dir=in action=allow protocol=TCP localport=80 remoteip=any
+```
+
+#### 설정 확인:
+```bash
+# 외부에서 접근 테스트 (다른 네트워크에서)
+curl http://your-public-ip/github-webhook/
+```
+
+### 4. 설치 및 실행
 
 ```bash
 # 1. 저장소 클론
@@ -161,7 +202,7 @@ chmod +x setup.sh
 # bash ./setup.sh
 ```
 
-#### 🔧 setup.sh 실행 시 입력 정보:
+#### setup.sh 실행 시 입력 정보:
 
 **1단계: Git Repository URLs**
 ```
@@ -217,7 +258,7 @@ Enable HTTPS? (y/n, default: n):
 → HTTPS 사용 여부 (SSL 인증서 필요)
 ```
 
-#### ⚙️ setup.sh가 자동으로 수행하는 작업:
+#### setup.sh가 자동으로 수행하는 작업:
 
 1. **설정 파일 생성**: `setup.conf` 파일에 모든 설정 저장
 2. **Nginx 설정 선택**: HTTP 또는 HTTPS 설정 파일 적용
@@ -226,7 +267,7 @@ Enable HTTPS? (y/n, default: n):
 5. **서비스 시작**: 모든 컨테이너 빌드 및 실행
 6. **초기 계정 설정**: Jenkins 관리자 계정 자동 생성
 
-## 🎮 사용법
+## 사용법
 
 ### 초기 구동
 ```bash
@@ -250,13 +291,13 @@ git commit -m "feat: 새로운 기능 추가"
 git push origin main
 
 # 2. Jenkins 자동 실행 과정:
-#    ✅ GitHub 웹훅으로 빌드 트리거
-#    ✅ 소스 코드 체크아웃
-#    ✅ Docker 이미지 빌드
-#    ✅ 기존 컨테이너 중지 및 제거
-#    ✅ 새 컨테이너 배포
-#    ✅ Discord 알림 발송 (설정 시)
-#    ✅ 배포 완료
+#    GitHub 웹훅으로 빌드 트리거
+#    소스 코드 체크아웃
+#    Docker 이미지 빌드
+#    기존 컨테이너 중지 및 제거
+#    새 컨테이너 배포
+#    Discord 알림 발송 (설정 시)
+#    배포 완료
 ```
 
 ### 서비스 관리
@@ -283,7 +324,7 @@ docker-compose logs -f jenkins
 docker-compose logs -f
 ```
 
-## 🌐 네트워크 및 서비스 구성
+## 네트워크 및 서비스 구성
 
 ### Docker 네트워크
 - **네트워크명**: `woo-devops_app-network`
@@ -322,27 +363,53 @@ docker-compose logs -f
 | **Nginx** | 443 | 443 | HTTPS 웹서버 (SSL 설정 시) |
 | **Jenkins** | 8080 | 8080 | CI/CD 서버 |
 
-## 🔗 GitHub Webhook 설정
+## GitHub 저장소 설정 (setup.sh 실행 후 진행)
 
-Jenkins가 Git push를 자동으로 감지하도록 설정합니다.
+### 1. Jenkinsfile 업로드 (필수)
 
-### Frontend Repository 설정
-1. GitHub의 **Frontend 저장소** → **Settings** → **Webhooks**
-2. **Add webhook** 클릭
-3. 설정 값 입력:
-   - **Payload URL**: `http://your-domain.com:8080/github-webhook/`
-     - 로컬: `http://localhost:8080/github-webhook/`
-     - 서버: `http://jenkins.your-domain.com/github-webhook/`
-   - **Content type**: `application/json`
+각 저장소에 Jenkins 파이프라인 설정 파일을 업로드해야 합니다:
+
+```bash
+# Frontend 저장소에 Jenkinsfile 복사 후 푸시
+cp frontend/jenkinsfile /path/to/your/frontend-repo/jenkinsfile
+cd /path/to/your/frontend-repo
+git add jenkinsfile
+git commit -m "feat: add Jenkins pipeline configuration"
+git push origin main
+
+# Backend 저장소에 Jenkinsfile 복사 후 푸시  
+cp backend/jenkinsfile /path/to/your/backend-repo/jenkinsfile
+cd /path/to/your/backend-repo
+git add jenkinsfile
+git commit -m "feat: add Jenkins pipeline configuration"
+git push origin main
+```
+
+### 2. GitHub Webhook 설정 (자동 배포 필수)
+
+GitHub에서 코드 push 시 Jenkins로 자동 알림을 보내도록 웹훅을 설정합니다.
+
+#### 웹훅 설정 단계 (Frontend/Backend 저장소 각각 설정):
+
+1. **GitHub 사이트**에서 배포하려는 저장소로 이동
+2. 해당 저장소에서 **Settings** → **Webhooks** 클릭
+3. **Add webhook** 버튼 클릭
+4. 웹훅 설정 입력:
+   - **Payload URL**: 
+     - 로컬 개발: `http://localhost:8080/github-webhook/`
+     - 도메인 설정 시: `http://jenkins.your-domain.com/github-webhook/`
+     - 공인 IP 사용 시: `http://your-public-ip/github-webhook/` (포트포워딩 필요)
+   - **Content type**: `application/json` 선택
    - **Secret**: 비워두기
-   - **Which events**: `Just the push event` 선택
-   - **Active**: ✅ 체크
-4. **Add webhook** 클릭
+   - **Which events**: `Just the push event` 선택 (기본값)
+   - **Active**: 체크 (기본값)
+5. 하단의 **Add webhook** 버튼 클릭
 
-### Backend Repository 설정
-Frontend와 동일한 방법으로 Backend 저장소에도 웹훅 설정
+#### 설정 완료 후:
+- **웹훅 생성 완료** 메시지 확인
+- **Recent Deliveries**에서 ping 테스트 성공 확인 (초록색 체크)
 
-### 🔍 웹훅 테스트
+### 웹훅 테스트
 ```bash
 # Jenkins에서 웹훅 수신 로그 확인
 docker-compose logs -f jenkins | grep webhook
@@ -352,7 +419,7 @@ git commit --allow-empty -m "test: webhook trigger test"
 git push origin main
 ```
 
-## 🌍 서비스 접속 정보
+## 서비스 접속 정보
 
 설정한 도메인이 `example.com`이라고 가정할 때:
 
@@ -389,7 +456,35 @@ git push origin main
 127.0.0.1 jenkins.example.com
 ```
 
-## 🔒 보안 설정
+#### 로컬 개발환경 추가 설정
+
+**Linux/macOS:**
+
+```bash
+# 방화벽 포트 80 허용 (Ubuntu/Debian)
+sudo ufw allow 80
+
+# hosts 파일에 도메인 추가
+echo "127.0.0.1 jenkins.woodevtest.kro.kr" | sudo tee -a /etc/hosts
+echo "127.0.0.1 woodevtest.kro.kr" | sudo tee -a /etc/hosts
+echo "127.0.0.1 www.woodevtest.kro.kr" | sudo tee -a /etc/hosts
+echo "127.0.0.1 api.woodevtest.kro.kr" | sudo tee -a /etc/hosts
+```
+
+**Windows (관리자 권한 PowerShell):**
+
+```powershell
+# 방화벽 포트 80 허용
+netsh advfirewall firewall add rule name="Docker HTTP" dir=in action=allow protocol=TCP localport=80
+
+# hosts 파일에 도메인 추가
+Add-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value "127.0.0.1 jenkins.woodevtest.kro.kr"
+Add-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value "127.0.0.1 woodevtest.kro.kr" 
+Add-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value "127.0.0.1 www.woodevtest.kro.kr"
+Add-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value "127.0.0.1 api.woodevtest.kro.kr"
+```
+
+## 보안 설정
 
 ### HTTPS 설정 (권장)
 ```bash
@@ -419,7 +514,7 @@ cp nginx/nginx-https.conf nginx/nginx.conf
 # - 프로덕션에서는 rootless Docker 사용 고려
 ```
 
-## 🔧 문제 해결
+## 문제 해결
 
 ### 자주 발생하는 문제들
 
@@ -508,7 +603,37 @@ docker-compose logs jenkins | grep -i webhook
 3. 포트 8080이 열려있는지 확인
 4. GitHub에서 웹훅 전송 로그 확인
 
-#### 6. Nginx 502 Bad Gateway
+#### 6. GitHub 웹훅 연결 실패 (외부 접근 불가)
+
+**증상**: GitHub에서 "failed to connect to host" 에러
+
+**원인**: 
+- 포트포워딩 미설정
+- 방화벽 차단
+- 도메인 DNS 설정 문제
+
+**해결 방법:**
+```bash
+# 1. 네트워크 설정 확인
+ipconfig  # 내부 IP 확인
+curl http://your-public-ip/github-webhook/  # 외부 접근 테스트
+
+# 2. 포트포워딩 설정 (라우터 관리 페이지)
+외부포트: 80 → 내부IP: [PC IP], 내부포트: 80
+
+# 3. 방화벽 허용 (관리자 권한)
+netsh advfirewall firewall add rule name="HTTP External" dir=in action=allow protocol=TCP localport=80 remoteip=any
+
+# 4. DNS 확인
+nslookup your-domain.com 8.8.8.8
+```
+
+**임시 해결책:**
+- GitHub 웹훅 URL을 공인 IP 사용: `http://your-public-ip/github-webhook/`
+- ngrok 같은 터널링 서비스 사용
+- Jenkins 폴링 방식으로 변경
+
+#### 7. Nginx 502 Bad Gateway
 ```bash
 # Nginx 로그 확인
 docker-compose logs nginx
@@ -572,7 +697,7 @@ docker-compose logs -f backend &
 docker-compose logs -f jenkins &
 ```
 
-## 🚀 추가 팁
+## 추가 팁
 
 ### 성능 최적화
 ```bash
@@ -617,7 +742,7 @@ docker-compose build --parallel
 
 ---
 
-## 📞 지원
+## 지원
 
 ### 문제 신고
 - **GitHub Issues**: 버그 신고 및 기능 요청
@@ -633,4 +758,4 @@ docker-compose build --parallel
 
 ---
 
-**🎉 축하합니다!** Woo-DevOps 프레임워크를 성공적으로 설정하셨습니다. 이제 코드를 푸시하기만 하면 자동으로 빌드와 배포가 이루어집니다!
+**축하합니다!** Woo-DevOps 프레임워크를 성공적으로 설정하셨습니다. 이제 코드를 푸시하기만 하면 자동으로 빌드와 배포가 이루어집니다!
