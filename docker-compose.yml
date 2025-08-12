@@ -1,0 +1,97 @@
+services:
+  
+  database:
+    image: mysql:8.0
+    container_name: woo_database
+    env_file:
+      - setup.conf
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-woo_devops}
+      MYSQL_USER: ${DB_USER:-woo}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-woo123}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-woo123}
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: dockerfile
+    container_name: woo_backend
+    env_file:
+      - setup.conf
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    depends_on:
+      - database
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: dockerfile
+    container_name: woo_frontend
+    env_file:
+      - setup.conf
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:1.25
+    container_name: woo_nginx
+    env_file:
+      - setup.conf
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - app-network
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: woo_jenkins
+    env_file:
+      - setup.conf
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    environment:
+      FRONTEND_REPO_URL: ${FRONTEND_REPO_URL:-https://github.com/test_front.git}
+      BACKEND_REPO_URL: ${BACKEND_REPO_URL:-https://github.com/test_back.git}
+      DB_NAME: ${DB_NAME:-woo_devops}
+      DB_USER: ${DB_USER:-woo}
+      DB_PASSWORD: ${DB_PASSWORD:-woo123}
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-woo123}
+      JENKINS_OPTS: "--argumentsRealm.passwd.${JENKINS_USER:-admin}=${JENKINS_PASSWORD:-admin123} --argumentsRealm.roles.${JENKINS_USER:-admin}=admin"
+      DOCKER_HOST: unix:///var/run/docker.sock
+      DISCORD_WEBHOOK: ${DISCORD_WEBHOOK:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+    volumes:
+      - ./jenkins:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - app-network
+    user: root
+
+volumes:
+  mysql-data:
+
+networks:
+  app-network:

@@ -1,0 +1,28 @@
+Manifest-Version: 1.0
+Created-By: Maven Archiver 3.6.0
+Build-Jdk-Spec: 17
+Specification-Title: Discord Notifier
+Specification-Version: 0.0
+Implementation-Title: Discord Notifier
+Implementation-Version: 260.v8f28622b_a_6b_7
+Group-Id: nz.co.jammehcow
+Artifact-Id: discord-notifier
+Short-Name: discord-notifier
+Long-Name: Discord Notifier
+Url: https://github.com/jenkinsci/discord-notifier-plugin
+Plugin-Version: 260.v8f28622b_a_6b_7
+Hudson-Version: 2.401.3
+Jenkins-Version: 2.401.3
+Plugin-Dependencies: workflow-step-api:639.v6eca_cd8c04a_a_,matrix-proje
+ ct:822.v01b_8c85d16d2
+Plugin-Developers: James Upjohn:jammehcow:jspartan250@gmail.com,Kacper S
+ tasiuk:KocproZ:kocproz@protonmail.com
+Plugin-License-Name: MIT License
+Plugin-License-Url: https://opensource.org/licenses/MIT
+Plugin-ScmConnection: scm:git:https://github.com/jenkinsci/discord-notif
+ ier-plugin.git
+Plugin-ScmTag: 8f28622ba6b7f1481735d803d9e2f7ceb4f20e99
+Plugin-ScmUrl: https://github.com/jenkinsci/discord-notifier-plugin
+Plugin-GitHash: 8f28622ba6b7f1481735d803d9e2f7ceb4f20e99
+Implementation-Build: 8f28622ba6b7f1481735d803d9e2f7ceb4f20e99
+

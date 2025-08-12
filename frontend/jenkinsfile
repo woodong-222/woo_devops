@@ -1,0 +1,101 @@
+pipeline {
+    agent any
+
+    environment {
+        VITE_SERVER_URL = "${env.FRONTEND_REPO_URL}"
+        DISCORD = "${env.DISCORD_WEBHOOK}"
+    }
+
+    stages {
+        stage('Start Notification') {
+            steps {
+                script {
+                    if (env.DISCORD) {
+                        discordSend description: "젠킨스 배포를 시작합니다!", 
+                            link: "${env.BUILD_URL}console", 
+                            title: "${env.JOB_NAME} : ${currentBuild.displayName} 시작", 
+                            webhookURL: env.DISCORD
+                    } else {
+                        echo "Discord notifications disabled"
+                    }
+                }
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Setup') {
+            steps {
+                script {
+                    sh '''
+                    echo "VITE_SERVER_URL=$VITE_SERVER_URL" > .env
+                    chmod 600 .env
+                    '''
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    sh '''
+                    docker build -t woo_frontend:latest .
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    sh '''
+                    docker stop woo_frontend || true
+                    docker rm woo_frontend || true
+                    docker run -d --name woo_frontend --network woo-devops_app-network -p 3000:3000 --restart unless-stopped woo_frontend:latest
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                if (env.DISCORD) {
+                    discordSend description: """
+                            제목 : ${currentBuild.displayName}
+                            결과 : ${currentBuild.result}
+                            실행 시간 : ${currentBuild.duration / 1000}s
+                            """, 
+                        footer: "빌드 성공!", 
+                        link: "${env.BUILD_URL}console", result: currentBuild.currentResult, 
+                        title: "${env.JOB_NAME} : ${currentBuild.displayName} 성공", 
+                        webhookURL: env.DISCORD
+                } else {
+                    echo "Build completed successfully - Discord notifications disabled"
+                }
+            }
+        }
+        failure {
+            script {
+                if (env.DISCORD) {
+                    discordSend description: """
+                            제목 : ${currentBuild.displayName}
+                            결과 : ${currentBuild.result}
+                            실행 시간 : ${currentBuild.duration / 1000}s
+                            """, 
+                        footer: "⚠️ 빌드 실패 : 상세 로그는 링크 들어가서 확인하세요 ⚠️", 
+                        link: "${env.BUILD_URL}console", result: currentBuild.currentResult, 
+                        title: "${env.JOB_NAME} : ${currentBuild.displayName} 실패", 
+                        webhookURL: env.DISCORD
+                } else {
+                    echo "Build failed - Discord notifications disabled"
+                }
+            }
+        }
+    }
+}

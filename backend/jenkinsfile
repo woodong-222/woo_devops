@@ -1,0 +1,112 @@
+pipeline {
+    agent any
+
+    environment {
+        DISCORD = "${env.DISCORD_WEBHOOK}"
+        DB_USER = "${env.DB_USER}"
+        DB_PASSWD = "${env.DB_PASSWORD}"
+        DB_PORT = '3306'
+        DB_HOST = 'woo_database'
+        DB_NAME = "${env.DB_NAME}"
+    }
+
+    stages {
+        stage('Start Notification') {
+            steps {
+                script {
+                    if (env.DISCORD) {
+                        discordSend description: "젠킨스 배포를 시작합니다!", 
+                            link: "${env.BUILD_URL}console", 
+                            title: "${env.JOB_NAME} : ${currentBuild.displayName} 시작", 
+                            webhookURL: env.DISCORD
+                    } else {
+                        echo "Discord notifications disabled"
+                    }
+                }
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Setup') {
+            steps {
+                script {
+                    sh '''
+                    echo "DB_USER=$DB_USER" > .env
+                    echo "DB_PASSWORD=$DB_PASSWD" >> .env
+                    echo "DB_PORT=$DB_PORT" >> .env
+                    echo "DB_HOST=$DB_HOST" >> .env
+                    echo "DB_NAME=$DB_NAME" >> .env
+                    chmod 600 .env
+                    '''
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    sh '''
+                    docker build -t woo_backend:latest .
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    sh '''
+                    docker stop woo_backend || true
+                    docker rm woo_backend || true
+                    docker run -d --name woo_backend --network woo-devops_app-network -p 8000:8000 \
+                        --env-file .env \
+                        --restart unless-stopped \
+                        woo_backend:latest
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                if (env.DISCORD) {
+                    discordSend description: """
+                            제목 : ${currentBuild.displayName}
+                            결과 : ${currentBuild.result}
+                            실행 시간 : ${currentBuild.duration / 1000}s
+                            """, 
+                        footer: "빌드 성공!", 
+                        link: "${env.BUILD_URL}console", result: currentBuild.currentResult, 
+                        title: "${env.JOB_NAME} : ${currentBuild.displayName} 성공", 
+                        webhookURL: env.DISCORD
+                } else {
+                    echo "Build completed successfully - Discord notifications disabled"
+                }
+            }
+        }
+        failure {
+            script {
+                if (env.DISCORD) {
+                    discordSend description: """
+                            제목 : ${currentBuild.displayName}
+                            결과 : ${currentBuild.result}
+                            실행 시간 : ${currentBuild.duration / 1000}s
+                            """, 
+                        footer: "⚠️ 빌드 실패 : 상세 로그는 링크 들어가서 확인하세요 ⚠️", 
+                        link: "${env.BUILD_URL}console", result: currentBuild.currentResult, 
+                        title: "${env.JOB_NAME} : ${currentBuild.displayName} 실패", 
+                        webhookURL: env.DISCORD
+                } else {
+                    echo "Build failed - Discord notifications disabled"
+                }
+            }
+        }
+    }
+}
